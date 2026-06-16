@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import joinedload
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from app.database import get_db
 from app.models import DryingProcess, FlowerMaterial
@@ -87,15 +87,69 @@ async def create_process(data: DryingProcessCreate, db: AsyncSession = Depends(g
 
 
 @router.put("/{item_id}", response_model=DryingProcessResponse)
-async def update_process(item_id: int, data: DryingProcessUpdate, db: AsyncSession = Depends(get_db)):
+async def update_process(item_id: int, request: Request, db: AsyncSession = Depends(get_db)):
     stmt = select(DryingProcess).where(DryingProcess.id == item_id)
     result = await db.execute(stmt)
     item = result.scalar_one_or_none()
     if not item:
         raise HTTPException(status_code=404, detail="制作记录不存在")
-    update_data = data.model_dump(exclude_none=True)
-    for key, value in update_data.items():
-        setattr(item, key, value)
+    
+    raw_body: Dict[str, Any] = await request.json()
+    validated = DryingProcessUpdate(**raw_body)
+    
+    def clean_float(v):
+        if v is None: return None
+        if isinstance(v, str):
+            s = v.strip()
+            if s == '': return None
+            try: return float(s)
+            except ValueError: return None
+        return v
+    
+    def clean_int(v):
+        if v is None: return None
+        if isinstance(v, str):
+            s = v.strip()
+            if s == '': return None
+            try: return int(float(s))
+            except ValueError: return None
+        return v
+    
+    def clean_str(v):
+        if v is None: return None
+        s = str(v).strip()
+        return s if s != '' else None
+    
+    def clean_steps(v):
+        if v is None: return None
+        if isinstance(v, list):
+            cleaned = [str(s).strip() for s in v if s is not None and str(s).strip() != '']
+            return cleaned if cleaned else None
+        return None
+    
+    field_cleaners = {
+        'material_id': clean_int,
+        'process_name': lambda v: str(v).strip() if v else None,
+        'method': clean_str,
+        'temperature': clean_float,
+        'humidity': clean_float,
+        'pressure': clean_str,
+        'desiccant_weight': clean_float,
+        'pre_treatment': clean_str,
+        'process_steps': clean_steps,
+        'status': clean_str,
+        'color_retention': clean_str,
+        'shape_retention': clean_str,
+        'yield_rate': clean_float,
+        'output_quantity': clean_float,
+        'notes': clean_str,
+    }
+    
+    for field, raw_value in raw_body.items():
+        if field in field_cleaners:
+            cleaned = field_cleaners[field](raw_value)
+            setattr(item, field, cleaned)
+    
     await db.commit()
     await db.refresh(item)
     stmt = select(DryingProcess).options(joinedload(DryingProcess.material)).where(DryingProcess.id == item_id)

@@ -16,7 +16,7 @@ import dayjs from 'dayjs'
 const message = useMessage()
 const dialog = useDialog()
 const formRef = ref(null)
-console.log('=== Materials.vue v2 LOADED ===', Date.now())
+console.log('=== Materials.vue v3 LOADED ===', Date.now())
 
 const loading = ref(false)
 const modalLoading = ref(false)
@@ -69,6 +69,26 @@ const formRules = {
     required: true,
     message: '请输入原料名称',
     trigger: 'blur'
+  },
+  category: {
+    required: true,
+    validator: (rule, value) => {
+      if (!value || String(value).trim() === '') {
+        return new Error('请选择分类')
+      }
+      return true
+    },
+    trigger: ['blur', 'change']
+  },
+  color: {
+    required: true,
+    validator: (rule, value) => {
+      if (!value || String(value).trim() === '') {
+        return new Error('请选择花色')
+      }
+      return true
+    },
+    trigger: ['blur', 'change']
   }
 }
 
@@ -270,17 +290,27 @@ async function loadOptions() {
     ])
     if (catRes?.data) {
       const data = Array.isArray(catRes.data) ? catRes.data : (catRes.data.categories || catRes.data.list || [])
-      categoryOptions.value = data.map(item => ({
-        label: item.name || item.label || item,
-        value: item.value ?? item.id ?? item.name ?? item
-      }))
+      categoryOptions.value = data
+        .filter(item => {
+          const val = item.value ?? item.id ?? item.name ?? item
+          return val !== null && val !== undefined && String(val).trim() !== ''
+        })
+        .map(item => ({
+          label: item.name || item.label || item,
+          value: item.value ?? item.id ?? item.name ?? item
+        }))
     }
     if (colorRes?.data) {
       const data = Array.isArray(colorRes.data) ? colorRes.data : (colorRes.data.colors || colorRes.data.list || [])
-      colorOptions.value = data.map(item => ({
-        label: item.name || item.label || item,
-        value: item.value ?? item.id ?? item.name ?? item
-      }))
+      colorOptions.value = data
+        .filter(item => {
+          const val = item.value ?? item.id ?? item.name ?? item
+          return val !== null && val !== undefined && String(val).trim() !== ''
+        })
+        .map(item => ({
+          label: item.name || item.label || item,
+          value: item.value ?? item.id ?? item.name ?? item
+        }))
     }
   } catch (e) {
     console.warn('加载选项失败', e)
@@ -421,11 +451,17 @@ async function handleSubmit() {
   }
   modalLoading.value = true
   try {
+    const raw = { ...formValues.value }
+    Object.keys(raw).forEach(key => {
+      if (typeof raw[key] === 'string' && raw[key].trim() === '') {
+        raw[key] = null
+      }
+    })
     const data = {
-      ...formValues.value,
-      fresh_level: formValues.value.freshness ?? formValues.value.fresh_level,
-      purchase_date: formValues.value.purchase_date
-        ? dayjs(formValues.value.purchase_date).format('YYYY-MM-DD')
+      ...raw,
+      fresh_level: raw.freshness ?? raw.fresh_level,
+      purchase_date: raw.purchase_date
+        ? dayjs(raw.purchase_date).format('YYYY-MM-DD')
         : null
     }
     delete data.freshness

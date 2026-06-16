@@ -103,7 +103,7 @@ class DryingProcessBase(BaseModel):
     pressure: Optional[str] = None
     desiccant_weight: Optional[float] = None
     pre_treatment: Optional[str] = None
-    process_steps: Optional[List] = None
+    process_steps: Optional[List[str]] = None
     status: Optional[str] = "进行中"
     color_retention: Optional[str] = None
     shape_retention: Optional[str] = None
@@ -111,6 +111,74 @@ class DryingProcessBase(BaseModel):
     output_quantity: Optional[float] = None
     output_unit: Optional[str] = "枝"
     notes: Optional[str] = None
+
+    @field_validator('process_name', mode='before')
+    @classmethod
+    def _validate_process_name(cls, v):
+        if v is None:
+            raise ValueError('制作名称不能为空')
+        s = str(v).strip()
+        if s == '':
+            raise ValueError('制作名称不能为空')
+        return s
+
+    @field_validator('method', 'pressure', 'pre_treatment', 'color_retention',
+                     'shape_retention', 'output_unit', 'notes', mode='before')
+    @classmethod
+    def _empty_str_to_none_str(cls, v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s if s != '' else None
+
+    @field_validator('temperature', 'humidity', 'duration_hours', 'desiccant_weight',
+                     'yield_rate', 'output_quantity', mode='before')
+    @classmethod
+    def _empty_str_to_none_float(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            if s == '':
+                return None
+            try:
+                return float(s)
+            except ValueError:
+                return None
+        return v
+
+    @field_validator('material_id', mode='before')
+    @classmethod
+    def _empty_str_to_none_int(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            if s == '':
+                return None
+            try:
+                return int(float(s))
+            except ValueError:
+                return None
+        return v
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def _validate_status(cls, v):
+        if v is None:
+            return '进行中'
+        s = str(v).strip()
+        return s if s != '' else '进行中'
+
+    @field_validator('process_steps', mode='before')
+    @classmethod
+    def _clean_process_steps(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, list):
+            cleaned = [str(s).strip() for s in v if s is not None and str(s).strip() != '']
+            return cleaned if cleaned else None
+        return None
 
 
 class DryingProcessCreate(DryingProcessBase):
@@ -129,7 +197,7 @@ class DryingProcessUpdate(BaseModel):
     pressure: Optional[str] = None
     desiccant_weight: Optional[float] = None
     pre_treatment: Optional[str] = None
-    process_steps: Optional[List] = None
+    process_steps: Optional[List[str]] = None
     status: Optional[str] = None
     color_retention: Optional[str] = None
     shape_retention: Optional[str] = None
@@ -137,6 +205,74 @@ class DryingProcessUpdate(BaseModel):
     output_quantity: Optional[float] = None
     output_unit: Optional[str] = None
     notes: Optional[str] = None
+
+    @field_validator('process_name', mode='before')
+    @classmethod
+    def _validate_process_name_update(cls, v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        if s == '':
+            return None
+        return s
+
+    @field_validator('method', 'pressure', 'pre_treatment', 'color_retention',
+                     'shape_retention', 'output_unit', 'notes', mode='before')
+    @classmethod
+    def _empty_str_to_none_str_update(cls, v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s if s != '' else None
+
+    @field_validator('temperature', 'humidity', 'duration_hours', 'desiccant_weight',
+                     'yield_rate', 'output_quantity', mode='before')
+    @classmethod
+    def _empty_str_to_none_float_update(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            if s == '':
+                return None
+            try:
+                return float(s)
+            except ValueError:
+                return None
+        return v
+
+    @field_validator('material_id', mode='before')
+    @classmethod
+    def _empty_str_to_none_int_update(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            if s == '':
+                return None
+            try:
+                return int(float(s))
+            except ValueError:
+                return None
+        return v
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def _validate_status_update(cls, v):
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s if s != '' else None
+
+    @field_validator('process_steps', mode='before')
+    @classmethod
+    def _clean_process_steps_update(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, list):
+            cleaned = [str(s).strip() for s in v if s is not None and str(s).strip() != '']
+            return cleaned if cleaned else None
+        return None
 
 
 class DryingProcessResponse(DryingProcessBase):

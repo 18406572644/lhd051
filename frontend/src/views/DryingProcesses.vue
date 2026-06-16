@@ -416,24 +416,35 @@ async function handleSubmit() {
   }
   modalLoading.value = true
   try {
+    const toFloatOrNull = (val) => {
+      if (val === null || val === undefined || val === '') return null
+      const num = Number(val)
+      return isNaN(num) ? null : num
+    }
+    const toStringOrNull = (val) => {
+      if (val === null || val === undefined) return null
+      const s = String(val).trim()
+      return s === '' ? null : s
+    }
+    const steps = form.process_steps.filter(s => s && s.trim())
     const payload = {
-      process_name: form.process_name,
-      material_id: form.material_id,
-      method: form.method,
-      status: form.status,
+      process_name: form.process_name?.trim() || '',
+      material_id: toFloatOrNull(form.material_id) ? Number(form.material_id) : null,
+      method: toStringOrNull(form.method),
+      status: toStringOrNull(form.status) || '进行中',
       start_date: form.start_date ? new Date(form.start_date).toISOString() : null,
       end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
-      temperature: form.temperature,
-      humidity: form.humidity,
-      pressure: form.pressure,
-      desiccant_weight: form.desiccant_weight,
-      pre_treatment: form.pre_treatment || null,
-process_steps: form.process_steps.filter(s => s && s.trim()) || null,
-      color_retention: form.color_retention,
-      shape_retention: form.shape_retention,
-      yield_rate: form.yield_rate,
-      output_quantity: form.output_quantity,
-      notes: form.notes || null
+      temperature: toFloatOrNull(form.temperature),
+      humidity: toFloatOrNull(form.humidity),
+      pressure: toStringOrNull(form.pressure),
+      desiccant_weight: toFloatOrNull(form.desiccant_weight),
+      pre_treatment: toStringOrNull(form.pre_treatment),
+      process_steps: steps.length > 0 ? steps : null,
+      color_retention: toStringOrNull(form.color_retention),
+      shape_retention: toStringOrNull(form.shape_retention),
+      yield_rate: toFloatOrNull(form.yield_rate),
+      output_quantity: toFloatOrNull(form.output_quantity),
+      notes: toStringOrNull(form.notes)
     }
     if (editingId.value) {
       await dryingApi.update(editingId.value, payload)
@@ -445,6 +456,7 @@ process_steps: form.process_steps.filter(s => s && s.trim()) || null,
     showModal.value = false
     await Promise.all([loadList(), loadStats()])
   } catch (e) {
+    console.error('提交失败', e)
     message.error(editingId.value ? '更新失败' : '创建失败')
   } finally {
     modalLoading.value = false

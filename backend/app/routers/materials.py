@@ -57,9 +57,12 @@ async def get_materials(
 
 @router.get("/options/categories")
 async def get_categories(db: AsyncSession = Depends(get_db)):
-    stmt = select(FlowerMaterial.category).where(FlowerMaterial.category.isnot(None)).distinct()
+    stmt = select(FlowerMaterial.category).where(
+        FlowerMaterial.category.isnot(None),
+        FlowerMaterial.category != ""
+    ).distinct()
     result = await db.execute(stmt)
-    categories = [r[0] for r in result.all()]
+    categories = [r[0] for r in result.all() if r[0] and r[0].strip()]
     defaults = ["玫瑰", "满天星", "尤加利", "绣球", "薰衣草", "向日葵", "小雏菊", "康乃馨", "其他"]
     for c in defaults:
         if c not in categories:
@@ -69,9 +72,12 @@ async def get_categories(db: AsyncSession = Depends(get_db)):
 
 @router.get("/options/colors")
 async def get_colors(db: AsyncSession = Depends(get_db)):
-    stmt = select(FlowerMaterial.color).where(FlowerMaterial.color.isnot(None)).distinct()
+    stmt = select(FlowerMaterial.color).where(
+        FlowerMaterial.color.isnot(None),
+        FlowerMaterial.color != ""
+    ).distinct()
     result = await db.execute(stmt)
-    colors = [r[0] for r in result.all()]
+    colors = [r[0] for r in result.all() if r[0] and r[0].strip()]
     defaults = ["粉色", "红色", "白色", "黄色", "紫色", "蓝色", "橙色", "绿色", "香槟色", "混色"]
     for c in defaults:
         if c not in colors:
