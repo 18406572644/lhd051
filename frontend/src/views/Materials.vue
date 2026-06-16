@@ -16,7 +16,7 @@ import dayjs from 'dayjs'
 const message = useMessage()
 const dialog = useDialog()
 const formRef = ref(null)
-console.log('=== Materials.vue LOADED ===', Date.now())
+console.log('=== Materials.vue v2 LOADED ===', Date.now())
 
 const loading = ref(false)
 const modalLoading = ref(false)
@@ -269,14 +269,14 @@ async function loadOptions() {
       materialsApi.colors()
     ])
     if (catRes?.data) {
-      const data = Array.isArray(catRes.data) ? catRes.data : (catRes.data.list || [])
+      const data = Array.isArray(catRes.data) ? catRes.data : (catRes.data.categories || catRes.data.list || [])
       categoryOptions.value = data.map(item => ({
         label: item.name || item.label || item,
         value: item.value ?? item.id ?? item.name ?? item
       }))
     }
     if (colorRes?.data) {
-      const data = Array.isArray(colorRes.data) ? colorRes.data : (colorRes.data.list || [])
+      const data = Array.isArray(colorRes.data) ? colorRes.data : (colorRes.data.colors || colorRes.data.list || [])
       colorOptions.value = data.map(item => ({
         label: item.name || item.label || item,
         value: item.value ?? item.id ?? item.name ?? item
@@ -423,10 +423,12 @@ async function handleSubmit() {
   try {
     const data = {
       ...formValues.value,
+      fresh_level: formValues.value.freshness ?? formValues.value.fresh_level,
       purchase_date: formValues.value.purchase_date
         ? dayjs(formValues.value.purchase_date).format('YYYY-MM-DD')
         : null
     }
+    delete data.freshness
     if (isEdit.value) {
       await materialsApi.update(editId.value, data)
       message.success('更新成功')

@@ -60,6 +60,10 @@ async def get_categories(db: AsyncSession = Depends(get_db)):
     stmt = select(FlowerMaterial.category).where(FlowerMaterial.category.isnot(None)).distinct()
     result = await db.execute(stmt)
     categories = [r[0] for r in result.all()]
+    defaults = ["玫瑰", "满天星", "尤加利", "绣球", "薰衣草", "向日葵", "小雏菊", "康乃馨", "其他"]
+    for c in defaults:
+        if c not in categories:
+            categories.append(c)
     return {"categories": categories}
 
 
@@ -68,6 +72,10 @@ async def get_colors(db: AsyncSession = Depends(get_db)):
     stmt = select(FlowerMaterial.color).where(FlowerMaterial.color.isnot(None)).distinct()
     result = await db.execute(stmt)
     colors = [r[0] for r in result.all()]
+    defaults = ["粉色", "红色", "白色", "黄色", "紫色", "蓝色", "橙色", "绿色", "香槟色", "混色"]
+    for c in defaults:
+        if c not in colors:
+            colors.append(c)
     return {"colors": colors}
 
 

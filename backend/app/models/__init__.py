@@ -45,6 +45,7 @@ class DryingProcess(Base):
     temperature = Column(Float, comment="温度(℃)")
     humidity = Column(Float, comment="湿度(%)")
     pressure = Column(String(50), comment="压力/干燥剂重量")
+    desiccant_weight = Column(Float, comment="干燥剂重量(克)")
     pre_treatment = Column(Text, comment="预处理步骤")
     process_steps = Column(JSON, comment="制作步骤JSON")
     status = Column(String(20), default="进行中", comment="状态：进行中/已完成/失败")

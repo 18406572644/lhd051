@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from typing import Optional, List, Any, Dict
 from datetime import datetime, date
 
@@ -26,10 +26,21 @@ class FlowerMaterialBase(BaseModel):
     purchase_date: Optional[date] = None
     supplier: Optional[str] = None
     fresh_level: Optional[str] = None
+    freshness: Optional[str] = None
     storage_method: Optional[str] = None
     image_url: Optional[str] = None
     notes: Optional[str] = None
     is_available: Optional[bool] = True
+
+    @model_validator(mode='before')
+    @classmethod
+    def _map_freshness(cls, data):
+        if isinstance(data, dict):
+            if data.get('freshness') and not data.get('fresh_level'):
+                data['fresh_level'] = data['freshness']
+            elif data.get('fresh_level') and not data.get('freshness'):
+                data['freshness'] = data['fresh_level']
+        return data
 
 
 class FlowerMaterialCreate(FlowerMaterialBase):
@@ -47,10 +58,21 @@ class FlowerMaterialUpdate(BaseModel):
     purchase_date: Optional[date] = None
     supplier: Optional[str] = None
     fresh_level: Optional[str] = None
+    freshness: Optional[str] = None
     storage_method: Optional[str] = None
     image_url: Optional[str] = None
     notes: Optional[str] = None
     is_available: Optional[bool] = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def _map_freshness(cls, data):
+        if isinstance(data, dict):
+            if data.get('freshness') and not data.get('fresh_level'):
+                data['fresh_level'] = data['freshness']
+            elif data.get('fresh_level') and not data.get('freshness'):
+                data['freshness'] = data['fresh_level']
+        return data
 
 
 class FlowerMaterialResponse(FlowerMaterialBase):
@@ -79,6 +101,7 @@ class DryingProcessBase(BaseModel):
     temperature: Optional[float] = None
     humidity: Optional[float] = None
     pressure: Optional[str] = None
+    desiccant_weight: Optional[float] = None
     pre_treatment: Optional[str] = None
     process_steps: Optional[List] = None
     status: Optional[str] = "进行中"
@@ -104,6 +127,7 @@ class DryingProcessUpdate(BaseModel):
     temperature: Optional[float] = None
     humidity: Optional[float] = None
     pressure: Optional[str] = None
+    desiccant_weight: Optional[float] = None
     pre_treatment: Optional[str] = None
     process_steps: Optional[List] = None
     status: Optional[str] = None
