@@ -11,7 +11,7 @@ import {
   ColorPalette, Add, Search, Refresh, CreateOutline, TrashOutline,
   CloudUploadOutline, Ban, TimeOutline, CashOutline, FlagOutline,
   EyeOutline, FlowerOutline, Sparkles, ColorFilter,
-  Home, Wedding, Briefcase, Gift, Trophy, Scissors, HammerOutline,
+  Home, HeartCircleOutline, Briefcase, Gift, Trophy, CutOutline, HammerOutline,
   DocumentTextOutline, LayersOutline, ArrowUpOutline, ArrowDownOutline,
   AddOutline, RemoveOutline, HeartOutline, SparklesOutline
 } from '@vicons/ionicons5'
@@ -84,7 +84,7 @@ const priorityOptions = [
 
 const sceneIconMap = {
   '家居': Home,
-  '婚礼': Wedding,
+  '婚礼': HeartCircleOutline,
   '办公': Briefcase,
   '礼品': Gift,
   '展览': Trophy
@@ -957,7 +957,7 @@ onMounted(async () => {
 
               <div class="detail-section" v-if="currentDetail.tools_needed && currentDetail.tools_needed.length > 0">
                 <div class="section-label">
-                  <n-icon size="15" color="#B8926A"><Scissors /></n-icon>
+                  <n-icon size="15" color="#B8926A"><CutOutline /></n-icon>
                   工具清单
                 </div>
                 <n-space wrap :size="8">

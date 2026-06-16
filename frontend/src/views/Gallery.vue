@@ -5,7 +5,7 @@ import {
   NInput, NSelect, NSwitch, NModal, NForm, NFormItem,
   NUpload, NUploadDragger, NImage, NEllipsis, NInputNumber,
   NDatePicker, useMessage, useDialog, NEmpty, NPagination, NSkeleton,
-  NGallery
+  NImageGroup
 } from 'naive-ui'
 import {
   Images, Add, Search, CreateOutline, TrashOutline,
@@ -264,7 +264,18 @@ onMounted(() => {
 
 <template>
   <div class="gallery-wrapper">
-    <n-gallery :images="imageUrls" />
+    <n-image-group>
+      <n-space v-if="imageUrls.length">
+        <n-image
+          v-for="(url, idx) in imageUrls"
+          :key="idx"
+          :src="url"
+          width="120"
+          height="120"
+          object-fit="cover"
+        />
+      </n-space>
+    </n-image-group>
     <div class="section-header">
       <div>
         <h2 class="page-title">

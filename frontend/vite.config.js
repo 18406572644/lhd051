@@ -12,13 +12,14 @@ export default defineConfig({
   server: {
     port: 2051,
     host: '0.0.0.0',
+    force: true,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:6051',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true
       },
       '/static': {
-        target: 'http://127.0.0.1:6051',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true
       }
     }

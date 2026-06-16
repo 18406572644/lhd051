@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, h } from 'vue'
+import { ref, onMounted, computed, h, nextTick } from 'vue'
 import {
   NCard, NGrid, NGridItem, NTag, NIcon, NSpace, NButton, NInput, NSelect,
   NSwitch, NDataTable, NPagination, NModal, NForm, NFormItem, NInputNumber,
@@ -15,6 +15,8 @@ import dayjs from 'dayjs'
 
 const message = useMessage()
 const dialog = useDialog()
+const formRef = ref(null)
+console.log('=== Materials.vue LOADED ===', Date.now())
 
 const loading = ref(false)
 const modalLoading = ref(false)
@@ -369,6 +371,9 @@ function openCreate() {
     remark: ''
   }
   showModal.value = true
+  nextTick(() => {
+    formRef.value?.restoreValidation()
+  })
 }
 
 async function openEdit(row) {
@@ -401,10 +406,19 @@ async function openEdit(row) {
     showModal.value = false
   } finally {
     modalLoading.value = false
+    nextTick(() => {
+      formRef.value?.restoreValidation()
+    })
   }
 }
 
 async function handleSubmit() {
+  try {
+    await formRef.value?.validate()
+  } catch (e) {
+    message.warning('请完善表单内容')
+    return
+  }
   modalLoading.value = true
   try {
     const data = {
@@ -630,23 +644,14 @@ onMounted(() => {
       :style="{ width: '680px' }"
       :mask-closable="false"
       class="materials-modal"
-      :loading="modalLoading"
-      positive-text="保存"
-      negative-text="取消"
-      @positive-click="handleSubmit"
-      @negative-click="showModal = false"
+      :scrollable="true"
     >
-      <div class="modal-body-decor">
-        <span class="modal-flower-1">🌸</span>
-        <span class="modal-flower-2">🌿</span>
-      </div>
       <n-form
         ref="formRef"
         :model="formValues"
         :rules="formRules"
         label-placement="left"
         label-align="left"
-        inline
         require-mark-placement="right-hanging"
         size="medium"
         style="--n-label-width: 90px;"
@@ -790,6 +795,14 @@ onMounted(() => {
           </n-grid-item>
         </n-grid>
       </n-form>
+      <template #footer>
+        <n-space justify="end">
+          <n-button round :disabled="modalLoading" @click="showModal = false">取消</n-button>
+          <n-button type="primary" round :loading="modalLoading" @click="handleSubmit">
+            {{ isEdit ? '保存修改' : '确认创建' }}
+          </n-button>
+        </n-space>
+      </template>
     </n-modal>
   </div>
 </template>

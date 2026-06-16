@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, onMounted, h } from 'vue'
+import { ref, reactive, computed, onMounted, h, nextTick } from 'vue'
 import {
   NCard, NGrid, NGridItem, NTag, NIcon, NSpace, NButton, NInput,
   NSelect, NDatePicker, NInputNumber, NModal, NForm, NFormItem,
@@ -18,6 +18,7 @@ import { dryingApi, materialsApi } from '@/api'
 
 const message = useMessage()
 const dialog = useDialog()
+const formRef = ref(null)
 
 const loading = ref(false)
 const statLoading = ref(false)
@@ -87,18 +88,18 @@ const statCards = computed(() => [
 ])
 
 const formDefaults = () => ({
-  name: '',
+  process_name: '',
   material_id: null,
   method: null,
-  status: 'in_progress',
-  start_time: null,
-  end_time: null,
+  status: '进行中',
+  start_date: null,
+  end_date: null,
   temperature: null,
   humidity: null,
   pressure: null,
   desiccant_weight: null,
-  pretreatment: '',
-  steps: [''],
+  pre_treatment: '',
+  process_steps: [''],
   color_retention: null,
   shape_retention: null,
   yield_rate: null,
@@ -108,15 +109,19 @@ const formDefaults = () => ({
 
 const form = reactive(formDefaults())
 const formRules = {
-  name: {
+  process_name: {
     required: true,
     message: '请输入制作名称',
     trigger: 'blur'
   },
   material_id: {
-    required: true,
-    message: '请选择原料',
-    trigger: 'change'
+    trigger: 'change',
+    validator: (rule, value) => {
+      if (value === null || value === undefined || value === '') {
+        return new Error('请选择原料')
+      }
+      return true
+    }
   },
   method: {
     required: true,
@@ -153,17 +158,17 @@ const effectLabel = (val) => {
 }
 
 const statusTagStyle = (val) => {
+  const key = (val || '').trim()
   const map = {
-    in_progress: { bg: 'rgba(245,200,107,0.22)', color: '#C49B3A', type: 'warning' },
-    completed: { bg: 'rgba(168,195,160,0.22)', color: '#8BA888', type: 'success' },
-    failed: { bg: 'rgba(192,137,144,0.25)', color: '#A85F68', type: 'error' }
+    '进行中': { bg: 'rgba(245,200,107,0.22)', color: '#C49B3A', type: 'warning' },
+    '已完成': { bg: 'rgba(168,195,160,0.22)', color: '#8BA888', type: 'success' },
+    '失败': { bg: 'rgba(192,137,144,0.25)', color: '#A85F68', type: 'error' }
   }
-  return map[val] || { bg: 'rgba(212,165,165,0.15)', color: '#8B7D7B', type: 'default' }
+  return map[key] || { bg: 'rgba(212,165,165,0.15)', color: '#8B7D7B', type: 'default' }
 }
 
 const statusLabel = (val) => {
-  const map = { in_progress: '进行中', completed: '已完成', failed: '失败' }
-  return map[val] || val
+  return (val || '').trim() || '-'
 }
 
 const getMaterialName = (id) => {
@@ -196,8 +201,8 @@ function formatDuration(item) {
     if (h > 0) return `${h}h`
     return `${m}m`
   }
-  if (item.start_time && item.end_time) {
-    const diff = (new Date(item.end_time) - new Date(item.start_time)) / 3600000
+  if (item.start_date && item.end_date) {
+    const diff = (new Date(item.end_date) - new Date(item.start_date)) / 3600000
     if (diff > 0) {
       const h = Math.floor(diff)
       const m = Math.round((diff - h) * 60)
@@ -225,14 +230,12 @@ async function loadOptions() {
       materialsApi.list({ page_size: 100 })
     ])
     if (methodsRes?.data) {
-      methodOptions.value = Array.isArray(methodsRes.data)
-        ? methodsRes.data.map(m => ({ label: m.label || m.name || m, value: m.value ?? m.id ?? m }))
-        : Object.entries(methodsRes.data).map(([k, v]) => ({ label: v, value: k }))
+      const arr = Array.isArray(methodsRes.data) ? methodsRes.data : (methodsRes.data.methods || [])
+      methodOptions.value = arr.map(m => ({ label: m.label || m.name || m, value: m.value ?? m.id ?? m }))
     }
     if (statusesRes?.data) {
-      statusOptions.value = Array.isArray(statusesRes.data)
-        ? statusesRes.data.map(s => ({ label: s.label || s.name || s, value: s.value ?? s.id ?? s }))
-        : Object.entries(statusesRes.data).map(([k, v]) => ({ label: v, value: k }))
+      const arr = Array.isArray(statusesRes.data) ? statusesRes.data : (statusesRes.data.statuses || [])
+      statusOptions.value = arr.map(s => ({ label: s.label || s.name || s, value: s.value ?? s.id ?? s }))
     }
     let matList = []
     if (materialsRes?.data?.items) matList = materialsRes.data.items
@@ -260,7 +263,7 @@ async function loadList() {
     params.page_size = pagination.pageSize
 
     const res = await dryingApi.list(params)
-    if (res?.data?.list) {
+    if (res?.data?.items) {
       list.value = res.data.items
       pagination.total = res.data.total ?? 0
     } else if (res?.data && Array.isArray(res.data)) {
@@ -290,14 +293,15 @@ async function loadStats() {
     let inProgress = 0, completed = 0, failed = 0
 
     all.forEach(item => {
-      if (item.status === 'in_progress') inProgress++
-      else if (item.status === 'completed') completed++
-      else if (item.status === 'failed') failed++
+      const st = (item.status || '').trim()
+      if (st === '进行中') inProgress++
+      else if (st === '已完成') completed++
+      else if (st === '失败') failed++
 
       let hours = null
       if (item.duration_hours != null) hours = Number(item.duration_hours)
-      else if (item.start_time && item.end_time) {
-        hours = (new Date(item.end_time) - new Date(item.start_time)) / 3600000
+      else if (item.start_date && item.end_date) {
+        hours = (new Date(item.end_date) - new Date(item.start_date)) / 3600000
       }
       if (hours != null && hours > 0) {
         totalDuration += hours
@@ -362,6 +366,9 @@ function openCreate() {
   editingId.value = null
   Object.assign(form, formDefaults())
   showModal.value = true
+  nextTick(() => {
+    formRef.value?.restoreValidation()
+  })
 }
 
 function openEdit(item) {
@@ -369,15 +376,15 @@ function openEdit(item) {
   editingId.value = item.id
   Object.assign(form, formDefaults())
 
-  const fields = ['name', 'material_id', 'method', 'status', 'start_time',
-    'end_time', 'temperature', 'humidity', 'pressure', 'desiccant_weight',
-    'pretreatment', 'steps', 'color_retention', 'shape_retention',
+  const fields = ['process_name', 'material_id', 'method', 'status', 'start_date',
+    'end_date', 'temperature', 'humidity', 'pressure', 'desiccant_weight',
+    'pre_treatment', 'process_steps', 'color_retention', 'shape_retention',
     'yield_rate', 'output_quantity', 'notes']
   fields.forEach(k => {
     if (item[k] !== undefined && item[k] !== null) {
-      if (k === 'steps') {
+      if (k === 'process_steps') {
         form[k] = Array.isArray(item[k]) && item[k].length > 0 ? [...item[k]] : ['']
-      } else if (k === 'start_time' || k === 'end_time') {
+      } else if (k === 'start_date' || k === 'end_date') {
         form[k] = item[k] ? new Date(item[k]).getTime() : null
       } else {
         form[k] = item[k]
@@ -385,34 +392,43 @@ function openEdit(item) {
     }
   })
   showModal.value = true
+  nextTick(() => {
+    formRef.value?.restoreValidation()
+  })
 }
 
 function addStep() {
-  form.steps.push('')
+  form.process_steps.push('')
 }
 
 function removeStep(index) {
-  if (form.steps.length > 1) {
-    form.steps.splice(index, 1)
+  if (form.process_steps.length > 1) {
+    form.process_steps.splice(index, 1)
   }
 }
 
 async function handleSubmit() {
+  try {
+    await formRef.value?.validate()
+  } catch (e) {
+    message.warning('请完善表单内容')
+    return
+  }
   modalLoading.value = true
   try {
     const payload = {
-      name: form.name,
+      process_name: form.process_name,
       material_id: form.material_id,
       method: form.method,
       status: form.status,
-      start_time: form.start_time ? new Date(form.start_time).toISOString() : null,
-      end_time: form.end_time ? new Date(form.end_time).toISOString() : null,
+      start_date: form.start_date ? new Date(form.start_date).toISOString() : null,
+      end_date: form.end_date ? new Date(form.end_date).toISOString() : null,
       temperature: form.temperature,
       humidity: form.humidity,
       pressure: form.pressure,
       desiccant_weight: form.desiccant_weight,
-      pretreatment: form.pretreatment || null,
-      steps: form.steps.filter(s => s && s.trim()) || null,
+      pre_treatment: form.pre_treatment || null,
+process_steps: form.process_steps.filter(s => s && s.trim()) || null,
       color_retention: form.color_retention,
       shape_retention: form.shape_retention,
       yield_rate: form.yield_rate,
@@ -438,7 +454,7 @@ async function handleSubmit() {
 function handleDelete(item) {
   dialog.warning({
     title: '确认删除',
-    content: `确定要删除制作记录「${item.name}」吗？此操作不可撤销。`,
+    content: `确定要删除制作记录「${item.process_name}」吗？此操作不可撤销。`,
     positiveText: '删除',
     negativeText: '取消',
     positiveButtonProps: { type: 'error' },
@@ -478,13 +494,13 @@ function handleView(item) {
         h('span', { style: 'color: #5C4A4A; flex: 1;' }, m.value)
       ]))
     ]),
-    item.pretreatment ? h('div', { style: 'margin-bottom: 16px;' }, [
+    item.pre_treatment ? h('div', { style: 'margin-bottom: 16px;' }, [
       h('div', { style: 'font-weight: 600; color: #5C4A4A; margin-bottom: 6px;' }, '预处理'),
-      h('div', { style: 'font-size: 13px; background: #FAF6EE; padding: 10px 12px; border-radius: 8px; white-space: pre-wrap;' }, item.pretreatment)
+      h('div', { style: 'font-size: 13px; background: #FAF6EE; padding: 10px 12px; border-radius: 8px; white-space: pre-wrap;' }, item.pre_treatment)
     ]) : null,
-    (item.steps && item.steps.length) ? h('div', { style: 'margin-bottom: 16px;' }, [
+    (item.process_steps && item.process_steps.length) ? h('div', { style: 'margin-bottom: 16px;' }, [
       h('div', { style: 'font-weight: 600; color: #5C4A4A; margin-bottom: 6px;' }, '制作步骤'),
-      ...item.steps.map((s, i) => h('div', { style: 'display: flex; font-size: 13px; padding: 4px 0; gap: 8px;' }, [
+      ...item.process_steps.map((s, i) => h('div', { style: 'display: flex; font-size: 13px; padding: 4px 0; gap: 8px;' }, [
         h('span', { style: 'background: rgba(212,165,165,0.2); color: #C08990; width: 22px; height: 22px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; font-weight: 600;' }, i + 1),
         h('span', { style: 'flex: 1; color: #5C4A4A; line-height: 22px;' }, s)
       ]))
@@ -495,7 +511,7 @@ function handleView(item) {
     ]) : null
   ].filter(Boolean))
   dialog.info({
-    title: item.name,
+    title: item.process_name,
     content,
     positiveText: '关闭',
     style: 'width: 560px;'
@@ -642,7 +658,7 @@ onMounted(async () => {
               <div class="card-title-row">
                 <n-icon size="20" color="#D4A5A5"><Sparkles /></n-icon>
                 <span class="process-name">
-                  <n-ellipsis :line-clamp="1">{{ item.name }}</n-ellipsis>
+                  <n-ellipsis :line-clamp="1">{{ item.process_name }}</n-ellipsis>
                 </span>
               </div>
               <n-tag
@@ -846,6 +862,7 @@ onMounted(async () => {
       :scrollable="true"
     >
       <n-form
+        ref="formRef"
         :model="form"
         :rules="formRules"
         label-placement="left"
@@ -856,8 +873,8 @@ onMounted(async () => {
         <n-divider class="modal-divider"><span class="divider-label">基础信息</span></n-divider>
         <n-grid :cols="2" responsive="screen" :x-gap="16" :y-gap="6">
           <n-grid-item span="2 s:2 m:2 l:2">
-            <n-form-item label="制作名称" path="name">
-              <n-input v-model:value="form.name" placeholder="请输入制作名称" />
+            <n-form-item label="制作名称" path="process_name">
+              <n-input v-model:value="form.process_name" placeholder="请输入制作名称" />
             </n-form-item>
           </n-grid-item>
           <n-grid-item span="2 s:2 m:2 l:1">
@@ -907,7 +924,7 @@ onMounted(async () => {
           <n-grid-item span="2 s:2 m:2 l:1">
             <n-form-item label="开始时间">
               <n-date-picker
-                v-model:value="form.start_time"
+                v-model:value="form.start_date"
                 type="datetime"
                 clearable
                 placeholder="选择开始时间"
@@ -919,7 +936,7 @@ onMounted(async () => {
           <n-grid-item span="2 s:2 m:2 l:1">
             <n-form-item label="结束时间">
               <n-date-picker
-                v-model:value="form.end_time"
+                v-model:value="form.end_date"
                 type="datetime"
                 clearable
                 placeholder="选择结束时间"
@@ -979,7 +996,7 @@ onMounted(async () => {
         <n-divider class="modal-divider"><span class="divider-label">工艺流程</span></n-divider>
         <n-form-item label="预处理">
           <n-input
-            v-model:value="form.pretreatment"
+            v-model:value="form.pre_treatment"
             type="textarea"
             placeholder="描述预处理方法，如花材挑选、脱色、固定等..."
             :autosize="{ minRows: 3, maxRows: 6 }"
@@ -987,16 +1004,16 @@ onMounted(async () => {
         </n-form-item>
         <n-form-item label="制作步骤">
           <div class="steps-list">
-            <div v-for="(step, idx) in form.steps" :key="idx" class="step-item">
+            <div v-for="(step, idx) in form.process_steps" :key="idx" class="step-item">
               <span class="step-index">{{ idx + 1 }}</span>
               <n-input
-                v-model:value="form.steps[idx]"
+                v-model:value="form.process_steps[idx]"
                 :placeholder="`第${idx + 1}步...`"
                 round
                 clearable
               />
               <n-button
-                v-if="form.steps.length > 1"
+                v-if="form.process_steps.length > 1"
                 quaternary
                 circle
                 size="small"

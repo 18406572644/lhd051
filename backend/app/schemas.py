@@ -80,7 +80,7 @@ class DryingProcessBase(BaseModel):
     humidity: Optional[float] = None
     pressure: Optional[str] = None
     pre_treatment: Optional[str] = None
-    process_steps: Optional[List[Dict]] = None
+    process_steps: Optional[List] = None
     status: Optional[str] = "进行中"
     color_retention: Optional[str] = None
     shape_retention: Optional[str] = None
@@ -105,7 +105,7 @@ class DryingProcessUpdate(BaseModel):
     humidity: Optional[float] = None
     pressure: Optional[str] = None
     pre_treatment: Optional[str] = None
-    process_steps: Optional[List[Dict]] = None
+    process_steps: Optional[List] = None
     status: Optional[str] = None
     color_retention: Optional[str] = None
     shape_retention: Optional[str] = None
