@@ -1,0 +1,41 @@
+$rose-dusty: #D4A5A5;
+$rose-dusty-light: #E8B4B8;
+$rose-dusty-dark: #C08990;
+$cream-yellow: #FFF5D4;
+$cream-yellow-light: #FFF8E3;
+$cream-yellow-dark: #F5E6A3;
+$milk-white: #FFFDF6;
+$milk-white-warm: #FAF6EE;
+$warm-brown: #A68C6D;
+$sage-green: #A8C3A0;
+$sage-green-dark: #8BA888;
+$text-primary: #5C4A4A;
+$text-secondary: #8B7D7B;
+$text-light: #B8A8A6;
+$border-light: #F0E6DE;
+$shadow-soft: 0 4px 20px rgba(212, 165, 165, 0.15);
+$shadow-hover: 0 8px 30px rgba(212, 165, 165, 0.25);
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$radius-xl: 24px;
+
+@mixin card-base {
+  background: $milk-white;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-soft;
+  border: 1px solid rgba(240, 230, 222, 0.8);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: $shadow-hover;
+    transform: translateY(-2px);
+  }
+}
+
+@mixin flower-bg {
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(232, 180, 184, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(245, 230, 163, 0.15) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(168, 195, 160, 0.08) 0%, transparent 50%);
+}

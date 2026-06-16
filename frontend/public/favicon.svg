@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="petal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E8B4B8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#D4A5A5;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="leaf" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#A8C3A0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8BA888;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <circle cx="32" cy="28" r="6" fill="#F5E6A3"/>
+  <ellipse cx="32" cy="16" rx="8" ry="12" fill="url(#petal)"/>
+  <ellipse cx="18" cy="22" rx="8" ry="10" fill="url(#petal)" transform="rotate(-45 18 22)"/>
+  <ellipse cx="46" cy="22" rx="8" ry="10" fill="url(#petal)" transform="rotate(45 46 22)"/>
+  <ellipse cx="20" cy="36" rx="7" ry="9" fill="url(#petal)" transform="rotate(-75 20 36)"/>
+  <ellipse cx="44" cy="36" rx="7" ry="9" fill="url(#petal)" transform="rotate(75 44 36)"/>
+  <path d="M32 34 L32 54 Q32 58 28 58 M32 54 Q32 58 36 58" stroke="#8BA888" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M32 42 Q22 42 18 48 Q14 54 20 52 Q26 50 32 44" stroke="#8BA888" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <ellipse cx="20" cy="50" rx="5" ry="3" fill="url(#leaf)" transform="rotate(-30 20 50)"/>
+</svg>

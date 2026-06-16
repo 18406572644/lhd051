@@ -1,0 +1,37 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: flower-backend
+    restart: unless-stopped
+    ports:
+      - "6051:6051"
+    volumes:
+      - backend-data:/app/app
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - flower-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: flower-frontend
+    restart: unless-stopped
+    ports:
+      - "2051:2051"
+    depends_on:
+      - backend
+    networks:
+      - flower-network
+
+volumes:
+  backend-data:
+    name: flower-backend-data
+
+networks:
+  flower-network:
+    name: flower-network
+    driver: bridge
