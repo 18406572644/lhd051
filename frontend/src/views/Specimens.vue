@@ -13,6 +13,7 @@ import {
   Close, LocationOutline, ImagesOutline, CheckmarkCircleOutline
 } from '@vicons/ionicons5'
 import { specimensApi, uploadApi, shareApi, dryingApi } from '@/api'
+import ImageUploader from '@/components/ImageUploader.vue'
 
 const router = useRouter()
 const message = useMessage()
@@ -65,8 +66,7 @@ const formRules = {
   name: { required: true, message: '请输入标本名称', trigger: 'blur' }
 }
 
-const mainImageUploading = ref(false)
-const galleryUploading = ref(false)
+
 
 const showShareModal = ref(false)
 const shareFormRef = ref(null)
@@ -341,49 +341,7 @@ function handleShareSubmit() {
   })
 }
 
-async function handleMainImageUpload({ file, onFinish, onError, onProgress }) {
-  mainImageUploading.value = true
-  try {
-    const res = await uploadApi.uploadImage(file.file, 'specimens', (p) => onProgress({ percent: p }))
-    if (res?.data?.url || res?.data?.file_url || res?.data?.file_path) {
-      formData.image_url = res.data.url || res.data.file_url || res.data.file_path
-      onFinish()
-      message.success('主图上传成功')
-    } else {
-      onError()
-      message.error('上传失败')
-    }
-  } catch (e) {
-    onError()
-    message.error('上传失败')
-  } finally {
-    mainImageUploading.value = false
-  }
-}
 
-async function handleGalleryUpload({ file, onFinish, onError, onProgress }) {
-  galleryUploading.value = true
-  try {
-    const res = await uploadApi.uploadImage(file.file, 'specimens', (p) => onProgress({ percent: p }))
-    if (res?.data?.url || res?.data?.file_url || res?.data?.file_path) {
-      const url = res.data.url || res.data.file_url || res.data.file_path
-      formData.gallery_images = [...formData.gallery_images, url]
-      onFinish()
-    } else {
-      onError()
-      message.error('上传失败')
-    }
-  } catch (e) {
-    onError()
-    message.error('上传失败')
-  } finally {
-    galleryUploading.value = false
-  }
-}
-
-function removeGalleryImage(index) {
-  formData.gallery_images.splice(index, 1)
-}
 
 const tableColumns = computed(() => [
   {
@@ -795,71 +753,21 @@ onMounted(() => {
           <n-dynamic-tags v-model:value="formData.tags" closable round placeholder="输入标签后回车添加" input-style="width: 100%;" />
         </n-form-item>
         <n-form-item label="主图" label-placement="top">
-          <div class="upload-main-wrap">
-            <div v-if="formData.image_url" class="main-image-preview">
-              <img :src="formData.image_url" class="main-img" />
-              <n-button
-                class="remove-main-img"
-                size="tiny"
-                type="error"
-                quaternary
-                circle
-                @click="formData.image_url = ''"
-              >
-                <template #icon><n-icon :component="Close" /></template>
-              </n-button>
-            </div>
-            <n-upload
-              v-else
-              :show-file-list="false"
-              :max="1"
-              accept="image/*"
-              @before-upload="() => true"
-              custom-request
-              @custom-request="handleMainImageUpload"
-            >
-              <n-upload-dragger style="padding: 16px;">
-                <div style="margin-bottom: 8px;">
-                  <n-icon size="28" color="#D4A5A5"><ImagesOutline /></n-icon>
-                </div>
-                <div style="color: #5C4A4A; font-weight: 500; margin-bottom: 4px;">点击上传主图</div>
-                <div style="color: #B8A8A6; font-size: 12px;">支持 JPG/PNG，建议方形图</div>
-              </n-upload-dragger>
-            </n-upload>
-          </div>
+          <ImageUploader
+            v-model="formData.image_url"
+            folder="specimens"
+            :max-count="1"
+            :compress="true"
+            :multiple="false"
+          />
         </n-form-item>
         <n-form-item label="图集" label-placement="top">
-          <div class="upload-gallery-wrap">
-            <div
-              v-for="(url, idx) in formData.gallery_images"
-              :key="idx"
-              class="gallery-item"
-            >
-              <img :src="url" class="gallery-img" />
-              <n-button
-                class="remove-gallery-img"
-                size="tiny"
-                type="error"
-                quaternary
-                circle
-                @click="removeGalleryImage(idx)"
-              >
-                <template #icon><n-icon :component="Close" /></template>
-              </n-button>
-            </div>
-            <n-upload
-              :show-file-list="false"
-              multiple
-              accept="image/*"
-              @before-upload="() => true"
-              custom-request
-              @custom-request="handleGalleryUpload"
-            >
-              <div class="gallery-add-btn">
-                <n-icon size="22" color="#D4A5A5"><Add /></n-icon>
-              </div>
-            </n-upload>
-          </div>
+          <ImageUploader
+            v-model="formData.gallery_images"
+            folder="specimens"
+            :max-count="9"
+            :compress="true"
+          />
         </n-form-item>
         <n-grid :cols="2" :x-gap="16" style="margin-top: 12px;">
           <n-grid-item span="2 s:2 m:1">
@@ -877,7 +785,7 @@ onMounted(() => {
       <template #footer>
         <NSpace justify="end">
           <n-button @click="showFormModal = false">取消</n-button>
-          <n-button type="primary" :loading="mainImageUploading || galleryUploading" @click="handleFormSubmit">
+          <n-button type="primary" @click="handleFormSubmit">
             <template #icon><n-icon :component="CheckmarkCircleOutline" /></template>
             {{ formMode === 'create' ? '创建' : '保存' }}
           </n-button>

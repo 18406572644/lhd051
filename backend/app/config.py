@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite+aiosqlite:///{BASE_DIR}/dried_flowers.db"
 
     UPLOAD_DIR: str = os.path.join(BASE_DIR, "uploads")
-    MAX_UPLOAD_SIZE: int = 10 * 1024 * 1024  # 10MB
+    MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
+    ALLOWED_IMAGE_EXTENSIONS: set = {"jpg", "jpeg", "png", "webp"}
 
     CORS_ORIGINS: list = [
         "http://localhost:5173",

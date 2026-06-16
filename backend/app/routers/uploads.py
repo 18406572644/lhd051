@@ -12,15 +12,13 @@ from app.database import get_db
 
 router = APIRouter(prefix="/api/uploads", tags=["图片上传管理"])
 
-ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp", "bmp"}
-
 
 def _get_extension(filename: str) -> str:
     return filename.rsplit(".", 1)[1].lower() if "." in filename else ""
 
 
 def _allowed_file(filename: str) -> bool:
-    return _get_extension(filename) in ALLOWED_EXTENSIONS
+    return _get_extension(filename) in settings.ALLOWED_IMAGE_EXTENSIONS
 
 
 @router.post("")
@@ -30,16 +28,24 @@ async def upload_image(
     db: AsyncSession = Depends(get_db)
 ):
     if not file:
-        raise HTTPException(status_code=400, detail="未上传文件")
+        raise HTTPException(status_code=400, detail="未上传文件，请选择图片后重试")
 
     if not _allowed_file(file.filename):
-        raise HTTPException(status_code=400, detail="不支持的文件格式，仅支持图片文件")
+        allowed_formats = ", ".join(sorted(settings.ALLOWED_IMAGE_EXTENSIONS)).upper()
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支持的文件格式「{file.filename}」，仅支持 {allowed_formats} 格式"
+        )
 
     file_size = 0
     content = await file.read()
     file_size = len(content)
     if file_size > settings.MAX_UPLOAD_SIZE:
-        raise HTTPException(status_code=400, detail=f"文件过大，最大支持 {settings.MAX_UPLOAD_SIZE // 1024 // 1024}MB")
+        max_size_mb = settings.MAX_UPLOAD_SIZE // 1024 // 1024
+        raise HTTPException(
+            status_code=400,
+            detail=f"文件过大「{file.filename}」({file_size // 1024}KB)，单张图片最大支持 {max_size_mb}MB"
+        )
 
     ext = _get_extension(file.filename)
     date_folder = datetime.now().strftime("%Y%m%d")

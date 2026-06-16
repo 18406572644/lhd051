@@ -96,18 +96,40 @@ export const statisticsApi = {
   trend: () => http.get('/api/statistics/trend')
 }
 
+const MAX_RETRY_COUNT = 2
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function uploadWithRetry(uploadFn, retries = MAX_RETRY_COUNT) {
+  let lastError
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const result = await uploadFn()
+      return result
+    } catch (error) {
+      lastError = error
+      if (attempt < retries) {
+        await delay(500 * (attempt + 1))
+      }
+    }
+  }
+  throw lastError
+}
+
 export const uploadApi = {
   uploadImage: (file, folder = 'general', onProgress) => {
     const form = new FormData()
     form.append('file', file)
     form.append('folder', folder)
-    return http.upload('/api/uploads', form, onProgress)
+    return uploadWithRetry(() => http.upload('/api/uploads', form, onProgress))
   },
   uploadBatch: (files, folder = 'general') => {
     const form = new FormData()
     files.forEach((f) => form.append('files', f))
     form.append('folder', folder)
-    return http.upload('/api/uploads/batch', form)
+    return uploadWithRetry(() => http.upload('/api/uploads/batch', form))
   },
   deleteImage: (path) => http.delete('/api/uploads', { file_path: path })
 }
